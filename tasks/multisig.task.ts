@@ -2,13 +2,11 @@ import { task } from "hardhat/config";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
 task("deploy:MultiSig", "Deploys the MultiSig")
-  .addParam<string>("ownerAddress", "The address of the owner")
-  .addParam<string>("managerAddress", "The address of the manager")
-  .addParam<string>("hotApproverAddress", "The address of the hot approver")
-  .addParam<string>("coldApproverAddress", "The address of the cold approver")
+  .addParam<string>("pactusFoundationAddress", "The address of the Pactus Foundation")
+  .addParam<string>("wraptoTeamAddress", "The address of the Wrapto Team")
   .setAction(
     async (
-      { ownerAddress, managerAddress, hotApproverAddress, coldApproverAddress },
+      { pactusFoundationAddress, wraptoTeamAddress, hotApproverAddress, coldApproverAddress },
       { ethers }: HardhatRuntimeEnvironment
     ) => {
       console.log("Running deploy:MultiSig");
@@ -16,12 +14,10 @@ task("deploy:MultiSig", "Deploys the MultiSig")
       const [deployer] = await ethers.getSigners();
 
       console.log("	Deployer address:", deployer.address);
-      console.log("	ownerAddress addresses:", ownerAddress);
-      console.log("	managerAddress addresses:", managerAddress);
-      console.log("	hotApproverAddress addresses:", hotApproverAddress);
-      console.log("	coldApproverAddress addresses:", coldApproverAddress);
+      console.log("	pactusFoundationAddress addresses:", pactusFoundationAddress);
+      console.log("	wraptoTeamAddress addresses:", wraptoTeamAddress);
 
-      const addresses = [ownerAddress, managerAddress, hotApproverAddress, coldApproverAddress];
+      const addresses = [pactusFoundationAddress, wraptoTeamAddress];
 
       for (const a of addresses) {
         if (!ethers.isAddress(a.trim())) {
@@ -30,12 +26,7 @@ task("deploy:MultiSig", "Deploys the MultiSig")
       }
 
       const MultiSigFactory = await ethers.getContractFactory("MultiSig");
-      const MultiSig = await MultiSigFactory.deploy(
-        ownerAddress,
-        managerAddress,
-        hotApproverAddress,
-        coldApproverAddress,
-      );
+      const MultiSig = await MultiSigFactory.deploy(pactusFoundationAddress, wraptoTeamAddress);
       await MultiSig.waitForDeployment();
 
       const address = await MultiSig.getAddress();

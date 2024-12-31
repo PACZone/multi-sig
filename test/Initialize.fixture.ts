@@ -4,10 +4,8 @@ import { MultiSig } from "../typechain-types";
 
 export class RunContext {
   signers!: {
-    owner: SignerWithAddress;
-    manager: SignerWithAddress;
-    hotApprover: SignerWithAddress;
-    coldApprover: SignerWithAddress;
+    pactusFoundation: SignerWithAddress;
+    wraptoTeam: SignerWithAddress;
     user1: SignerWithAddress;
     user2: SignerWithAddress;
   };
@@ -20,21 +18,16 @@ export async function initializeFixture(): Promise<RunContext> {
   // Retrieve signers
   const signers: SignerWithAddress[] = await ethers.getSigners();
   context.signers = {
-    owner: signers[0],
-    manager: signers[1],
-    hotApprover: signers[2],
-    coldApprover: signers[3],
+    pactusFoundation: signers[0],
+    wraptoTeam: signers[1],
     user1: signers[4],
     user2: signers[5],
   };
 
   // Deploy MultiSig contract
   context.multiSig = await run("deploy:MultiSig", {
-    ownerAddress: context.signers.owner.address,
-    managerAddress: context.signers.manager.address,
-    hotApproverAddress: context.signers.hotApprover.address,
-    coldApproverAddress: context.signers.coldApprover.address,
-    minConfirmation: "2",
+    pactusFoundationAddress: context.signers.pactusFoundation.address,
+    wraptoTeamAddress: context.signers.wraptoTeam.address,
   });
 
   return context;

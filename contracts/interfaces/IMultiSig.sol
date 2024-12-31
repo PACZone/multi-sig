@@ -8,7 +8,6 @@ interface IMultiSig {
     address target;
     address submitter;
     ProposalStatus status;
-    bytes32[] requiredConfirmations;
   }
 
   enum ProposalStatus {
@@ -34,13 +33,7 @@ interface IMultiSig {
   error InvalidData();
   error NotExecutor();
 
-  event ProposalSubmitted(
-    uint256 indexed id,
-    address indexed submitter,
-    address target,
-    uint256 value,
-    bytes32[] requiredConfirmations
-  );
+  event ProposalSubmitted(uint256 indexed id, address indexed submitter, address target, uint256 value);
   event ProposalConfirmed(uint256 indexed id, address indexed confirmer);
   event ProposalRevoked(uint256 indexed id, address indexed revoker);
   event ProposalExecuted(uint256 indexed id, address indexed executor);
