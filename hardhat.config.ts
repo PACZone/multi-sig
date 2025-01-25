@@ -1,63 +1,115 @@
 import "@nomicfoundation/hardhat-toolbox";
 import "@nomicfoundation/hardhat-verify";
 import "@typechain/hardhat";
-import * as dotenv from "dotenv";
+import { config as dotenvConfig } from "dotenv"
 import "hardhat-gas-reporter";
 import { HardhatUserConfig } from "hardhat/config";
 import "solidity-coverage";
+import { resolve, join } from "path"
+
 
 import "./tasks/multisig.task";
 
-dotenv.config();
+const dotenvConfigPath: string = process.env.DOTENV_CONFIG_PATH || join(__dirname, ".env")
+dotenvConfig({ path: resolve(__dirname, dotenvConfigPath) })
 
-const accounts_list: any = [process.env.ACCOUNT];
+const etherscanApiKey = process.env.ETHERSCAN_API_KEY
+const account = process.env.PRIVATE_KEY
+const RPC = process.env.POLYGON_RPC_URL
 
-const config: HardhatUserConfig = {
-  defaultNetwork: "hardhat",
-  gasReporter: {
-    currency: "USD",
-    enabled: true,
-    excludeContracts: [],
-    src: "./contracts",
-  },
-  solidity: {
-    version: "0.8.27",
-    settings: {
-      metadata: {
-        // Not including the metadata hash
-        // https://github.com/paulrberg/hardhat-template/issues/31
-        bytecodeHash: "none",
-      },
-      // Disable the optimizer when debugging
-      // https://hardhat.org/hardhat-network/#solidity-optimizer-support
-      optimizer: {
-        enabled: true,
-        runs: 200,
-      },
-      viaIR: true,
-      debug: {
-        revertStrings: "debug",
-      },
-    },
-  },
-  networks: {
-    amoy: {
-      url: "https://rpc-amoy.polygon.technology",
-      accounts: accounts_list,
-    },
-  },
-  etherscan: {
-    apiKey: {
-      polygonAmoy: "ZWKG2IY8DTD8MBGCMST8UI8BR4IPKAA3H2",
-    },
-    customChains: [],
-  },
-  paths: {
-    artifacts: "./artifacts",
-    cache: "./cache",
-    sources: "./contracts",
-    tests: "./test",
-  },
-};
+let config: HardhatUserConfig
 
-export default config;
+if (!process.env.CI) {
+	if (!etherscanApiKey) throw new Error("Hardhat_Config: etherscan api key is not defined.")
+	if (!account) throw new Error("Hardhat_Config: account is not defined.")
+	if (!RPC) throw new Error("Hardhat_Config: RPC is not defined.")
+
+	config = {
+		defaultNetwork: "hardhat",
+		solidity: "0.8.20",
+		networks: {
+			hardhat: {
+				allowUnlimitedContractSize: false,
+			},
+			amoy: {
+				url: RPC,
+				accounts: [account],
+			},
+
+			polygon: {
+				url: RPC,
+				accounts: [account],
+			},
+		},
+		etherscan: {
+			apiKey: {
+				amoy: etherscanApiKey,
+				polygon:etherscanApiKey
+			},
+			customChains: [
+				{
+				  network: "polygon",
+				  chainId: 137,
+				  urls: {
+					apiURL: "https://api.polygonscan.com/api",
+					browserURL: "https://polygonscan.com"
+				  },
+				},
+				{
+					network: "amoy",
+					chainId: 80002,
+					urls: {
+					  apiURL: "https://api-amoy.polygonscan.com/api",
+					  browserURL: "https://amoy.polygonscan.com"
+					}
+				  }
+			  ]
+		},
+		gasReporter: {
+			currency: "USD",
+			enabled: true,
+			excludeContracts: [],
+			src: "./contracts",
+		},
+		typechain: {
+			outDir: "src/types",
+		},
+		mocha: {
+			timeout: 100000000,
+		},
+		paths: {
+			artifacts: "./artifacts",
+			cache: "./cache",
+			sources: "./contracts",
+		},
+	}
+} else {
+	config = {
+		defaultNetwork: "hardhat",
+		solidity: "0.8.20",
+		networks: {
+			hardhat: {
+				allowUnlimitedContractSize: false,
+			},
+		},
+		gasReporter: {
+			currency: "USD",
+			enabled: true,
+			excludeContracts: [],
+			src: "./contracts",
+		},
+		typechain: {
+			outDir: "src/types",
+		},
+		mocha: {
+			timeout: 100000000,
+		},
+		paths: {
+			artifacts: "./artifacts",
+			cache: "./cache",
+			sources: "./contracts",
+		},
+	}
+}
+
+export default config

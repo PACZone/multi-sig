@@ -15,6 +15,7 @@ contract MultiSig is IMultiSig, ReentrancyGuard, AccessControl {
 
   bytes32 public constant PACTUS_FOUNDATION = keccak256("PACTUS_FOUNDATION");
   bytes32 public constant WRAPTO_TEAM = keccak256("WRAPTO_TEAM");
+  bytes32 public constant RECOVERY_PARTY = keccak256("RECOVERY_PARTY");
 
   // State Variables
   uint256 public counter;
@@ -42,16 +43,15 @@ contract MultiSig is IMultiSig, ReentrancyGuard, AccessControl {
   }
 
   // Constructor
-  constructor(address pactusFoundationAddress, address wraptoTeamAddress) {
-    if (
-      pactusFoundationAddress == address(0) ||
-      wraptoTeamAddress == address(0)
-    ) revert InvalidPartyAddress(address(0));
+  constructor(address pactusFoundationAddress, address wraptoTeamAddress, address recoveryParty) {
+    if (pactusFoundationAddress == address(0) || wraptoTeamAddress == address(0) || recoveryParty == address(0))
+      revert InvalidPartyAddress(address(0));
 
     MIN_CONFIRMATION = 2;
 
     _addParty(pactusFoundationAddress, PACTUS_FOUNDATION);
     _addParty(wraptoTeamAddress, WRAPTO_TEAM);
+    _addParty(recoveryParty, RECOVERY_PARTY);
   }
 
   function _addParty(address party, bytes32 role) internal {
@@ -63,7 +63,6 @@ contract MultiSig is IMultiSig, ReentrancyGuard, AccessControl {
   // Public Functions
   function submitProposal(address _target, bytes calldata _data, uint256 _value) public returns (uint256) {
     if (_data.length < 4) revert InvalidData();
-    bytes4 selector = _data.extractSelector();
 
     counter++;
     Proposal storage proposal = Proposals[counter];
@@ -73,7 +72,7 @@ contract MultiSig is IMultiSig, ReentrancyGuard, AccessControl {
     proposal.submitter = _msgSender();
     proposal.status = ProposalStatus.SUBMITTED;
 
-    emit ProposalSubmitted(counter, msg.sender, _target, _value);
+    emit ProposalSubmitted(counter, _msgSender(), _target, _value);
 
     return counter;
   }
@@ -81,25 +80,25 @@ contract MultiSig is IMultiSig, ReentrancyGuard, AccessControl {
   function confirmProposal(uint256 id, bytes32 role) public onlyParty isProposalExist(id) {
     Proposal memory proposal = Proposals[id];
     if (proposal.status != ProposalStatus.SUBMITTED) revert ProposalAlreadyExecuted(id);
-    if (isConfirm[id][msg.sender]) revert TransactionAlreadyConfirmed(id);
+    if (isConfirm[id][_msgSender()]) revert TransactionAlreadyConfirmed(id);
     if (!hasRole(role, _msgSender())) revert InvalidRole(id);
     if (confirmations[id][role]) revert RoleConfirmed(id);
 
-    isConfirm[id][msg.sender] = true;
+    isConfirm[id][_msgSender()] = true;
     confirmations[id][role] = true;
 
-    emit ProposalConfirmed(id, msg.sender);
+    emit ProposalConfirmed(id, _msgSender());
   }
 
   function revokeConfirmation(uint256 id, bytes32 role) public onlyParty isProposalExist(id) isProposalSubmitted(id) {
-    if (!isConfirm[id][msg.sender]) revert TransactionNotConfirmed(id);
+    if (!isConfirm[id][_msgSender()]) revert TransactionNotConfirmed(id);
     if (!hasRole(role, _msgSender())) revert InvalidRole(id);
     if (!confirmations[id][role]) revert RoleNotConfirmed(id);
 
-    isConfirm[id][msg.sender] = false;
+    isConfirm[id][_msgSender()] = false;
     confirmations[id][role] = false;
 
-    emit ProposalRevoked(id, msg.sender);
+    emit ProposalRevoked(id, _msgSender());
   }
 
   function executeProposal(
@@ -107,9 +106,8 @@ contract MultiSig is IMultiSig, ReentrancyGuard, AccessControl {
   ) public isProposalExist(id) isProposalSubmitted(id) nonReentrant returns (bytes memory) {
     Proposal storage proposal = Proposals[id];
 
-      if (!confirmations[id][PACTUS_FOUNDATION]) revert NotEnoughConfirmations(id);
-      if (!confirmations[id][WRAPTO_TEAM]) revert NotEnoughConfirmations(id);
-
+    if (!confirmations[id][PACTUS_FOUNDATION]) revert NotEnoughConfirmations(id);
+    if (!confirmations[id][WRAPTO_TEAM]) revert NotEnoughConfirmations(id);
 
     proposal.status = ProposalStatus.EXECUTED;
 
@@ -119,7 +117,7 @@ contract MultiSig is IMultiSig, ReentrancyGuard, AccessControl {
       revert(errorMessage);
     }
 
-    emit ProposalExecuted(id, msg.sender);
+    emit ProposalExecuted(id, _msgSender());
 
     return returnData;
   }

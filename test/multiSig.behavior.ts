@@ -10,6 +10,7 @@ export function shouldBehaveLikeMultiSig() {
 
   let PACTUS_FOUNDATION: string;
   let WRAPTO_TEAM: string;
+  let RECOVERY_KEY: string;
 
   let MultiSigFactory: MultiSig__factory;
 
@@ -28,6 +29,7 @@ export function shouldBehaveLikeMultiSig() {
 
     WRAPTO_TEAM = await multiSig.WRAPTO_TEAM();
     PACTUS_FOUNDATION = await multiSig.PACTUS_FOUNDATION();
+    RECOVERY_KEY = await multiSig.RECOVERY_PARTY()
   });
 
   describe("Deployment", function () {
@@ -43,18 +45,35 @@ export function shouldBehaveLikeMultiSig() {
 
     it("should revert if any party address is zero", async function () {
       await expect(
-        MultiSigFactory.deploy(ethers.ZeroAddress, context.signers.wraptoTeam.address)
+        MultiSigFactory.deploy(
+          ethers.ZeroAddress,
+          context.signers.wraptoTeam.address,
+          context.signers.recovertParty.address
+        )
       ).to.be.revertedWithCustomError(multiSig, "InvalidPartyAddress");
 
       await expect(
-        MultiSigFactory.deploy(context.signers.pactusFoundation.address, ethers.ZeroAddress)
+        MultiSigFactory.deploy(
+          context.signers.pactusFoundation.address,
+          ethers.ZeroAddress,
+          context.signers.recovertParty.address
+        )
+      ).to.be.revertedWithCustomError(multiSig, "InvalidPartyAddress");
+
+      await expect(
+        MultiSigFactory.deploy(
+          context.signers.pactusFoundation.address,
+          context.signers.wraptoTeam.address,
+          ethers.ZeroAddress,
+        )
       ).to.be.revertedWithCustomError(multiSig, "InvalidPartyAddress");
 
       it("should revert if a party address is duplicated", async function () {
         await expect(
           MultiSigFactory.deploy(
             context.signers.pactusFoundation.address,
-            context.signers.pactusFoundation.address // Duplicate
+            context.signers.pactusFoundation.address, // Duplicate
+            context.signers.recovertParty.address
           )
         ).to.be.revertedWithCustomError(multiSig, "PartyNotUnique");
       });
@@ -88,9 +107,11 @@ export function shouldBehaveLikeMultiSig() {
         it("should allow a party with the correct role to confirm", async function () {
           await multiSig.connect(context.signers.pactusFoundation).confirmProposal(proposalId, PACTUS_FOUNDATION);
           await multiSig.connect(context.signers.wraptoTeam).confirmProposal(proposalId, WRAPTO_TEAM);
+          await multiSig.connect(context.signers.recovertParty).confirmProposal(proposalId, RECOVERY_KEY);
 
           expect(await multiSig.confirmations(proposalId, WRAPTO_TEAM)).to.be.true;
           expect(await multiSig.confirmations(proposalId, PACTUS_FOUNDATION)).to.be.true;
+          expect(await multiSig.confirmations(proposalId, RECOVERY_KEY)).to.be.true;
         });
 
         it("should revert if the caller is not a party", async function () {
@@ -161,8 +182,7 @@ export function shouldBehaveLikeMultiSig() {
               .confirmProposal(sampleProposalId, PACTUS_FOUNDATION);
             await multiSig.connect(context.signers.wraptoTeam).confirmProposal(sampleProposalId, WRAPTO_TEAM);
 
-            await expect(multiSig.executeProposal(sampleProposalId)).to.be.not
-              .reverted;
+            await expect(multiSig.executeProposal(sampleProposalId)).to.be.not.reverted;
             expect(await sampleContract.storedNumber()).to.be.equal(n);
           });
 
@@ -238,8 +258,7 @@ export function shouldBehaveLikeMultiSig() {
             it("should allow owner to execute", async function () {
               await multiSig.connect(context.signers.pactusFoundation).confirmProposal(proposalId, PACTUS_FOUNDATION);
               await multiSig.connect(context.signers.wraptoTeam).confirmProposal(proposalId, WRAPTO_TEAM);
-              await expect(multiSig.executeProposal(proposalId)).not.to.be
-                .reverted;
+              await expect(multiSig.executeProposal(proposalId)).not.to.be.reverted;
             });
           });
           describe("isRoleValid", function () {
