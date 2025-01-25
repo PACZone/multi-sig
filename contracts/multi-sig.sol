@@ -62,8 +62,6 @@ contract MultiSig is IMultiSig, ReentrancyGuard, AccessControl {
 
   // Public Functions
   function submitProposal(address _target, bytes calldata _data, uint256 _value) public returns (uint256) {
-    if (_data.length < 4) revert InvalidData();
-
     counter++;
     Proposal storage proposal = Proposals[counter];
     proposal.data = _data;
@@ -106,8 +104,12 @@ contract MultiSig is IMultiSig, ReentrancyGuard, AccessControl {
   ) public isProposalExist(id) isProposalSubmitted(id) nonReentrant returns (bytes memory) {
     Proposal storage proposal = Proposals[id];
 
-    if (!confirmations[id][PACTUS_FOUNDATION]) revert NotEnoughConfirmations(id);
-    if (!confirmations[id][WRAPTO_TEAM]) revert NotEnoughConfirmations(id);
+    uint256 confirmationCount = 0;
+    if (confirmations[id][PACTUS_FOUNDATION]) confirmationCount++;
+    if (confirmations[id][WRAPTO_TEAM]) confirmationCount++;
+    if (confirmations[id][RECOVERY_PARTY]) confirmationCount++;
+
+    if (confirmationCount < MIN_CONFIRMATION) revert NotEnoughConfirmations(id);
 
     proposal.status = ProposalStatus.EXECUTED;
 

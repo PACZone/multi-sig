@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { initializeFixture, RunContext } from "./Initialize.fixture";
-import { MultiSig, MultiSig__factory } from "../typechain-types";
+import { MultiSig, MultiSig__factory } from "../types";
 import { ethers } from "hardhat";
 
 export function shouldBehaveLikeMultiSig() {
@@ -94,12 +94,6 @@ export function shouldBehaveLikeMultiSig() {
           expect(proposal.value).to.equal(ethers.parseEther("1"));
           expect(proposal.submitter).to.equal(context.signers.pactusFoundation.address);
           expect(proposal.status).to.equal(0);
-        });
-
-        it("should revert if data length wrong", async function () {
-          await expect(
-            multiSig.submitProposal(context.signers.wraptoTeam.address, "0x", ethers.parseEther("1"))
-          ).to.be.revertedWithCustomError(multiSig, "InvalidData");
         });
       });
 
@@ -205,7 +199,7 @@ export function shouldBehaveLikeMultiSig() {
           await multiSig.connect(context.signers.pactusFoundation).confirmProposal(failProposalId, PACTUS_FOUNDATION);
           await multiSig.connect(context.signers.wraptoTeam).confirmProposal(failProposalId, WRAPTO_TEAM);
 
-          const errMsg = "ABI decoding: invalid tuple offset";
+          const errMsg = "TransactionFailed";
 
           await expect(
             multiSig.connect(context.signers.pactusFoundation).executeProposal(failProposalId)
