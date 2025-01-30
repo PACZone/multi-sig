@@ -8,6 +8,7 @@ import "solidity-coverage";
 import { resolve, join } from "path";
 
 import "./tasks/multisig.task";
+import "./tasks/multisigRecovery.task";
 
 const dotenvConfigPath: string = process.env.DOTENV_CONFIG_PATH || join(__dirname, ".env");
 dotenvConfig({ path: resolve(__dirname, dotenvConfigPath) });
